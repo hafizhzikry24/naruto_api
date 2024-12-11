@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
@@ -32,6 +33,7 @@ func main() {
 	router := gin.Default()
 
 	router.GET("/character", indexUser)
+	router.GET("/character/search", searchCharacter)
 	router.POST("/character", createUser)
 	router.GET("/character/:slug", readUser)
 	router.PUT("/character/:slug", updateUser)
@@ -41,32 +43,170 @@ func main() {
 }
 
 func indexUser(c *gin.Context) {
+	// Ambil parameter `page` dan `limit` dari query string
+	page := c.Query("page")   // Ambil halaman dari query string
+	limit := c.Query("limit") // Ambil limit dari query string
+
 	var users []bson.M
 
-	// Ambil semua data tanpa pagination
-	cursor, err := collection.Find(context.TODO(), bson.D{})
+	if page == "" && limit == "" {
+		// Jika tidak ada parameter page dan limit, ambil semua data
+		cursor, err := collection.Find(context.TODO(), bson.D{})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer cursor.Close(context.TODO())
+
+		for cursor.Next(context.TODO()) {
+			var user bson.M
+			err := cursor.Decode(&user)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			// Menyaring nilai "Unknown" dan field kosong
+			user = filterEmptyAndUnknown(user)
+			users = append(users, user)
+		}
+	} else {
+		// Jika ada parameter page dan limit
+		pageInt, err := strconv.Atoi(page)
+		if err != nil || pageInt < 1 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid page number"})
+			return
+		}
+
+		limitInt, err := strconv.Atoi(limit)
+		if err != nil || limitInt < 1 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid limit number"})
+			return
+		}
+
+		// Hitung skip untuk pagination
+		skip := (pageInt - 1) * limitInt
+
+		// Menyaring semua data (tanpa filter khusus)
+		cursor, err := collection.Find(context.TODO(), bson.D{}, options.Find().SetSkip(int64(skip)).SetLimit(int64(limitInt)))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer cursor.Close(context.TODO())
+
+		for cursor.Next(context.TODO()) {
+			var user bson.M
+			err := cursor.Decode(&user)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			// Menyaring nilai "Unknown" dan field kosong
+			user = filterEmptyAndUnknown(user)
+			users = append(users, user)
+		}
+
+		// Ambil total data untuk menghitung total halaman
+		count, err := collection.CountDocuments(context.TODO(), bson.D{})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Menghitung total halaman
+		totalPages := (count + int64(limitInt) - 1) / int64(limitInt)
+
+		c.JSON(http.StatusOK, gin.H{
+			"messages":   "Success retrieved data",
+			"result":     users,
+			"page":       pageInt,
+			"limit":      limitInt,
+			"totalPages": totalPages,
+			"totalItems": count,
+		})
+		return
+	}
+
+	// Jika tidak ada parameter page dan limit, kembalikan semua data
+	c.JSON(http.StatusOK, gin.H{
+		"messages": "Success retrieved all data",
+		"result":   users,
+	})
+}
+
+// Fungsi untuk menyaring nilai "Unknown" dan nilai kosong
+func filterEmptyAndUnknown(data bson.M) bson.M {
+	for key, value := range data {
+		switch v := value.(type) {
+		case string:
+			// Hapus jika nilainya "Unknown" atau string kosong
+			if v == "Unknown" || v == "" {
+				delete(data, key)
+			}
+		case nil:
+			// Hapus jika nilainya nil
+			delete(data, key)
+		case map[string]interface{}:
+			// Jika ada map bersarang, lakukan rekursi
+			data[key] = filterEmptyAndUnknown(v)
+		case []interface{}:
+			// Jika ada array, lakukan pengecekan terhadap setiap elemen
+			for i := range v {
+				if subMap, ok := v[i].(map[string]interface{}); ok {
+					v[i] = filterEmptyAndUnknown(subMap)
+				}
+			}
+			// Hapus array kosong
+			if len(v) == 0 {
+				delete(data, key)
+			}
+		}
+	}
+	return data
+}
+
+func searchCharacter(c *gin.Context) {
+	nameQuery := c.DefaultQuery("name", "")
+	if nameQuery == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name query parameter is required"})
+		return
+	}
+
+	filter := bson.M{
+		"name": bson.M{
+			"$regex":   nameQuery,
+			"$options": "i", // Case insensitive
+		},
+	}
+
+	var characters []bson.M
+	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer cursor.Close(context.TODO())
 
-	// Menyimpan hasil query ke dalam slice `users`
 	for cursor.Next(context.TODO()) {
-		var user bson.M
-		err := cursor.Decode(&user)
-		if err != nil {
+		var character bson.M
+		if err := cursor.Decode(&character); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		users = append(users, user)
+
+		// Menyaring nilai "Unknown" dan field kosong
+		character = filterEmptyAndUnknown(character)
+		characters = append(characters, character)
 	}
 
-	// Kembalikan hasil dalam response
-	c.JSON(http.StatusOK, gin.H{
-		"messages": "Success retrieved all data",
-		"result":   users,
-	})
+	if len(characters) > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"messages": "Found characters",
+			"result":   characters,
+		})
+	} else {
+		c.JSON(http.StatusNotFound, gin.H{"message": "No characters found"})
+	}
 }
 
 func createUser(c *gin.Context) {
@@ -138,6 +278,9 @@ func readUser(c *gin.Context) {
 		}
 		return
 	}
+
+	// Menyaring nilai "Unknown" dan field kosong
+	user = filterEmptyAndUnknown(user)
 
 	c.JSON(http.StatusOK, gin.H{
 		"messages": "Success retrieved data",
