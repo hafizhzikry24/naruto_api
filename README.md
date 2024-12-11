@@ -8,22 +8,22 @@ Sample crud operation using Golang and MySql
 - Method: `GET`
 - Response: `200`
 
-### Create Post
+### Create characters
 - Path : `/characters`
 - Method: `POST`
 - Response: `201`
 
-### Details a Post
+### Details a characters
 - Path : `/characters/{slug}`
 - Method: `GET`
 - Response: `200`
 
-### Update Post
+### Update characters
 - Path : `/characters/{slug}`
 - Method: `PUT`
 - Response: `200`
 
-### Delete Post
+### Delete characters
 - Path : `/characters/{slug}`
 - Method: `DELETE`
 - Response: `204`
