@@ -65,8 +65,6 @@ func indexUser(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
-			// Menyaring nilai "Unknown" dan field kosong
-			user = filterEmptyAndUnknown(user)
 			users = append(users, user)
 		}
 	} else {
@@ -101,8 +99,6 @@ func indexUser(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
-			// Menyaring nilai "Unknown" dan field kosong
-			user = filterEmptyAndUnknown(user)
 			users = append(users, user)
 		}
 
@@ -134,37 +130,6 @@ func indexUser(c *gin.Context) {
 	})
 }
 
-// Fungsi untuk menyaring nilai "Unknown" dan nilai kosong
-func filterEmptyAndUnknown(data bson.M) bson.M {
-	for key, value := range data {
-		switch v := value.(type) {
-		case string:
-			// Hapus jika nilainya "Unknown" atau string kosong
-			if v == "Unknown" || v == "" {
-				delete(data, key)
-			}
-		case nil:
-			// Hapus jika nilainya nil
-			delete(data, key)
-		case map[string]interface{}:
-			// Jika ada map bersarang, lakukan rekursi
-			data[key] = filterEmptyAndUnknown(v)
-		case []interface{}:
-			// Jika ada array, lakukan pengecekan terhadap setiap elemen
-			for i := range v {
-				if subMap, ok := v[i].(map[string]interface{}); ok {
-					v[i] = filterEmptyAndUnknown(subMap)
-				}
-			}
-			// Hapus array kosong
-			if len(v) == 0 {
-				delete(data, key)
-			}
-		}
-	}
-	return data
-}
-
 func searchCharacter(c *gin.Context) {
 	nameQuery := c.DefaultQuery("name", "")
 	if nameQuery == "" {
@@ -193,9 +158,6 @@ func searchCharacter(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-
-		// Menyaring nilai "Unknown" dan field kosong
-		character = filterEmptyAndUnknown(character)
 		characters = append(characters, character)
 	}
 
@@ -278,9 +240,6 @@ func readUser(c *gin.Context) {
 		}
 		return
 	}
-
-	// Menyaring nilai "Unknown" dan field kosong
-	user = filterEmptyAndUnknown(user)
 
 	c.JSON(http.StatusOK, gin.H{
 		"messages": "Success retrieved data",
