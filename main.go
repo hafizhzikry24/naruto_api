@@ -224,7 +224,7 @@ func createUser(c *gin.Context) {
 	}
 
 	// Kembalikan response dengan hasil insert
-	c.JSON(http.StatusOK, gin.H{"result": result})
+	c.JSON(http.StatusCreated, gin.H{"result": result})
 }
 
 func readUser(c *gin.Context) {
@@ -356,5 +356,5 @@ func deleteUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Character deleted"})
+	c.JSON(http.StatusNoContent, gin.H{"message": "Character deleted"})
 }
