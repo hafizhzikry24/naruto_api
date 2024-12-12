@@ -8,6 +8,16 @@ Sample crud operation using Golang and MySql
 - Method: `GET`
 - Response: `200`
 
+### Pagination & limit Characters
+- Path : `/characters?page=1&limit=10`
+- Method: `GET`
+- Response: `200`
+
+### Search Characters
+- Path : `/characters/search?name=sasuke`
+- Method: `GET`
+- Response: `200`
+
 ### Create Post
 - Path : `/characters`
 - Method: `POST`

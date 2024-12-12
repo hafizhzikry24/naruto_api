@@ -4,10 +4,12 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -17,8 +19,16 @@ var client *mongo.Client
 var collection *mongo.Collection
 
 func main() {
-	var err error
-	client, err = mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mongoURI := os.Getenv("MONGO_URI")
+	mongoDB := os.Getenv("MONGO_DB")
+	mongoCollection := os.Getenv("MONGO_COLLECTION")
+
+	client, err = mongo.NewClient(options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +38,7 @@ func main() {
 	}
 	defer client.Disconnect(context.TODO())
 
-	collection = client.Database("naruto_db").Collection("characters")
+	collection = client.Database(mongoDB).Collection(mongoCollection)
 
 	router := gin.Default()
 
