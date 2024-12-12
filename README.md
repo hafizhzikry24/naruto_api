@@ -1,5 +1,5 @@
-# go-mysql-crud
-Sample crud operation using Golang and MySql
+# go-naruto-api
+Sample crud operation using Golang and NoSql(MongoDB)
 
 ## API ENDPOINTS
 
