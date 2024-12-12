@@ -1,5 +1,4 @@
-tmp/
-*.exe
-*.log
+/tmp/build-errors.log
+/tmp/main.exe
 
 .env
