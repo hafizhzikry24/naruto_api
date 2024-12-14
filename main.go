@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -34,20 +35,34 @@ func main() {
 	tailedbeast.InitTailedBeastCollection(db.Collection(os.Getenv("MONGO_COLLECTION_TAILEDBEAST")))
 
 	router := gin.Default()
+	protected := router.Group("/")
+	protected.Use(ApiKeyMiddleware)
 
-	router.GET("/character", character.IndexUser)
-	router.GET("/character/search", character.SearchCharacter)
-	router.POST("/character", character.CreateUser)
-	router.GET("/character/:slug", character.ReadUser)
-	router.PUT("/character/:slug", character.UpdateUser)
-	router.DELETE("/character/:slug", character.DeleteUser)
+	protected.GET("/character", character.IndexUser)
+	protected.GET("/character/search", character.SearchCharacter)
+	protected.POST("/character", character.CreateUser)
+	protected.GET("/character/:slug", character.ReadUser)
+	protected.PUT("/character/:slug", character.UpdateUser)
+	protected.DELETE("/character/:slug", character.DeleteUser)
 
-	router.GET("/tailedbeast", tailedbeast.IndexTailedBeast)
-	router.GET("/tailedbeast/search", tailedbeast.SearchTailedBeast)
-	router.POST("/tailedbeast", tailedbeast.CreateTailedBeast)
-	router.GET("/tailedbeast/:slug", tailedbeast.ReadTailedBeast)
-	router.PUT("/tailedbeast/:slug", tailedbeast.UpdateTailedBeast)
-	router.DELETE("/tailedbeast/:slug", tailedbeast.DeleteTailedBeast)
+	protected.GET("/tailedbeast", tailedbeast.IndexTailedBeast)
+	protected.GET("/tailedbeast/search", tailedbeast.SearchTailedBeast)
+	protected.POST("/tailedbeast", tailedbeast.CreateTailedBeast)
+	protected.GET("/tailedbeast/:slug", tailedbeast.ReadTailedBeast)
+	protected.PUT("/tailedbeast/:slug", tailedbeast.UpdateTailedBeast)
+	protected.DELETE("/tailedbeast/:slug", tailedbeast.DeleteTailedBeast)
 
 	router.Run(":8001")
+
+}
+
+func ApiKeyMiddleware(c *gin.Context) {
+	apiKeyHeader := c.GetHeader("X-API-KEY")
+
+	if apiKeyHeader != os.Getenv("X_API_KEY") {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.Abort()
+		return
+	}
+	c.Next()
 }
