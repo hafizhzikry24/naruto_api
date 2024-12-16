@@ -33,22 +33,22 @@ func main() {
 	character.InitCharacterCollection(db.Collection(os.Getenv("MONGO_COLLECTION")))
 	tailedbeast.InitTailedBeastCollection(db.Collection(os.Getenv("MONGO_COLLECTION_TAILEDBEAST")))
 
-	router := gin.Default()
+	r := gin.Default()
 
-	router.GET("/character", character.IndexUser)
-	router.GET("/character/search", character.SearchCharacter)
-	router.POST("/character", character.CreateUser)
-	router.GET("/character/:slug", character.ReadUser)
-	router.PUT("/character/:slug", character.UpdateUser)
-	router.DELETE("/character/:slug", character.DeleteUser)
+	r.GET("/character", character.IndexUser)
+	r.GET("/character/search", character.SearchCharacter)
+	r.POST("/character", character.CreateUser)
+	r.GET("/character/:slug", character.ReadUser)
+	r.PUT("/character/:slug", character.UpdateUser)
+	r.DELETE("/character/:slug", character.DeleteUser)
 
-	router.GET("/tailedbeast", tailedbeast.IndexTailedBeast)
-	router.GET("/tailedbeast/search", tailedbeast.SearchTailedBeast)
-	router.POST("/tailedbeast", tailedbeast.CreateTailedBeast)
-	router.GET("/tailedbeast/:slug", tailedbeast.ReadTailedBeast)
-	router.PUT("/tailedbeast/:slug", tailedbeast.UpdateTailedBeast)
-	router.DELETE("/tailedbeast/:slug", tailedbeast.DeleteTailedBeast)
+	r.GET("/tailedbeast", tailedbeast.IndexTailedBeast)
+	r.GET("/tailedbeast/search", tailedbeast.SearchTailedBeast)
+	r.POST("/tailedbeast", tailedbeast.CreateTailedBeast)
+	r.GET("/tailedbeast/:slug", tailedbeast.ReadTailedBeast)
+	r.PUT("/tailedbeast/:slug", tailedbeast.UpdateTailedBeast)
+	r.DELETE("/tailedbeast/:slug", tailedbeast.DeleteTailedBeast)
 
-	router.Run(":8001")
+	r.Run(":8001")
 
 }
