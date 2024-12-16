@@ -106,7 +106,7 @@ func (s *service) SearchBeasts(name string) ([]models.TailedBeast, error) {
 		return nil, errors.New("name query parameter is required")
 	}
 
-	beasts, _, err := s.repo.ListBeasts(0, 0)
+	beasts, err := s.repo.ListBeasts(0, 0)
 	if err != nil {
 		return nil, err
 	}

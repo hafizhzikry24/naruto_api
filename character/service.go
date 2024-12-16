@@ -113,7 +113,7 @@ func (s *service) SearchCharacters(name string) ([]models.Character, error) {
 
 	// Implementasi pencarian langsung di repository bisa lebih efisien
 	// Namun untuk contoh ini, kita gunakan ListCharacters dan filter manual
-	characters, _, err := s.repo.ListCharacters(0, 0)
+	characters, err := s.repo.ListCharacters(0, 0)
 	if err != nil {
 		return nil, err
 	}
