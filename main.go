@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -17,6 +16,7 @@ import (
 
 var client *mongo.Client
 var db *mongo.Database
+var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 
 func main() {
 	err := godotenv.Load()
@@ -36,7 +36,7 @@ func main() {
 
 	router := gin.Default()
 	protected := router.Group("/")
-	protected.Use(ApiKeyMiddleware)
+	protected.Use(JWTAuthMiddleware)
 
 	protected.GET("/character", character.IndexUser)
 	protected.GET("/character/search", character.SearchCharacter)
@@ -56,13 +56,6 @@ func main() {
 
 }
 
-func ApiKeyMiddleware(c *gin.Context) {
-	apiKeyHeader := c.GetHeader("X-API-KEY")
+func JWTAuthMiddleware(c *gin.Context) {
 
-	if apiKeyHeader != os.Getenv("X_API_KEY") {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		c.Abort()
-		return
-	}
-	c.Next()
 }
