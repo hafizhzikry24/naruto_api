@@ -15,42 +15,53 @@ import (
 	"my-gin-app/tailedbeast"
 )
 
-var client *mongo.Client
-var db *mongo.Database
-
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal(err)
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Error loading .env file")
 	}
 
 	clientOptions := options.Client().ApplyURI(os.Getenv("MONGO_URI"))
-	client, err = mongo.Connect(context.TODO(), clientOptions)
+	client, err := mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db = client.Database(os.Getenv("MONGO_DB"))
-	character.InitCharacterCollection(db.Collection(os.Getenv("MONGO_COLLECTION")))
-	tailedbeast.InitTailedBeastCollection(db.Collection(os.Getenv("MONGO_COLLECTION_TAILEDBEAST")))
+	if err := client.Ping(context.Background(), nil); err != nil {
+		log.Fatal(err)
+	}
+
+	db := client.Database(os.Getenv("MONGO_DB"))
+
+	characterRepo := character.NewRepository(db.Collection(os.Getenv("MONGO_COLLECTION")))
+	tailedBeastRepo := tailedbeast.NewRepository(db.Collection(os.Getenv("MONGO_COLLECTION_TAILEDBEAST")))
 
 	r := gin.Default()
 
 	r.Use(middleware.APIKeyMiddleware())
+	characterService := character.NewService(characterRepo)
+	tailedBeastService := tailedbeast.NewService(tailedBeastRepo)
 
-	r.GET("/character", character.IndexUser)
-	r.GET("/character/search", character.SearchCharacter)
-	r.POST("/character", character.CreateUser)
-	r.GET("/character/:slug", character.ReadUser)
-	r.PUT("/character/:slug", character.UpdateUser)
-	r.DELETE("/character/:slug", character.DeleteUser)
+	characterHandler := character.NewHandler(characterService)
+	tailedBeastHandler := tailedbeast.NewHandler(tailedBeastService)
 
-	r.GET("/tailedbeast", tailedbeast.IndexTailedBeast)
-	r.GET("/tailedbeast/search", tailedbeast.SearchTailedBeast)
-	r.POST("/tailedbeast", tailedbeast.CreateTailedBeast)
-	r.GET("/tailedbeast/:slug", tailedbeast.ReadTailedBeast)
-	r.PUT("/tailedbeast/:slug", tailedbeast.UpdateTailedBeast)
-	r.DELETE("/tailedbeast/:slug", tailedbeast.DeleteTailedBeast)
+	router := gin.Default()
+
+	router.GET("/character", characterHandler.IndexUser)
+	router.GET("/character/search", characterHandler.SearchCharacter)
+	router.POST("/character", characterHandler.CreateUser)
+	router.GET("/character/:slug", characterHandler.ReadUser)
+	router.PUT("/character/:slug", characterHandler.UpdateUser)
+	router.DELETE("/character/:slug", characterHandler.DeleteUser)
+
+	router.GET("/tailedbeast", tailedBeastHandler.IndexTailedBeast)
+	router.GET("/tailedbeast/search", tailedBeastHandler.SearchTailedBeast)
+	router.POST("/tailedbeast", tailedBeastHandler.CreateTailedBeast)
+	router.GET("/tailedbeast/:slug", tailedBeastHandler.ReadTailedBeast)
+	router.PUT("/tailedbeast/:slug", tailedBeastHandler.UpdateTailedBeast)
+	router.DELETE("/tailedbeast/:slug", tailedBeastHandler.DeleteTailedBeast)
 
 	r.Run(":8001")
+	if err := router.Run(":8001"); err != nil {
+		log.Fatal(err)
+	}
 }
