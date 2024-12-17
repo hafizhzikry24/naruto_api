@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"my-gin-app/character"
-	"my-gin-app/middleware" // Import middleware package
+	"my-gin-app/middleware"
 	"my-gin-app/tailedbeast"
 )
 
@@ -35,9 +35,6 @@ func main() {
 	characterRepo := character.NewRepository(db.Collection(os.Getenv("MONGO_COLLECTION")))
 	tailedBeastRepo := tailedbeast.NewRepository(db.Collection(os.Getenv("MONGO_COLLECTION_TAILEDBEAST")))
 
-	r := gin.Default()
-
-	r.Use(middleware.APIKeyMiddleware())
 	characterService := character.NewService(characterRepo)
 	tailedBeastService := tailedbeast.NewService(tailedBeastRepo)
 
@@ -45,6 +42,7 @@ func main() {
 	tailedBeastHandler := tailedbeast.NewHandler(tailedBeastService)
 
 	router := gin.Default()
+	router.Use(middleware.APIKeyMiddleware())
 
 	router.GET("/character", characterHandler.IndexUser)
 	router.GET("/character/search", characterHandler.SearchCharacter)
@@ -60,7 +58,7 @@ func main() {
 	router.PUT("/tailedbeast/:slug", tailedBeastHandler.UpdateTailedBeast)
 	router.DELETE("/tailedbeast/:slug", tailedBeastHandler.DeleteTailedBeast)
 
-	r.Run(":8001")
+	router.Run(":8001")
 	if err := router.Run(":8001"); err != nil {
 		log.Fatal(err)
 	}
