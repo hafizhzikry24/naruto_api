@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"my-gin-app/character"
+	"my-gin-app/middleware" // Import middleware package
 	"my-gin-app/tailedbeast"
 )
 
@@ -35,6 +36,8 @@ func main() {
 
 	r := gin.Default()
 
+	r.Use(middleware.APIKeyMiddleware())
+
 	r.GET("/character", character.IndexUser)
 	r.GET("/character/search", character.SearchCharacter)
 	r.POST("/character", character.CreateUser)
@@ -50,5 +53,4 @@ func main() {
 	r.DELETE("/tailedbeast/:slug", tailedbeast.DeleteTailedBeast)
 
 	r.Run(":8001")
-
 }
